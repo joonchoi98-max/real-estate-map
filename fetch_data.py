@@ -9,7 +9,7 @@ import requests
 
 
 def fetch_month(session, api_key, deal_ymd):
-    url = "https://apis.data.go.kr/1613000/RTMSDataSvcRHSale/getRTMSDataSvcRHSale"
+    url = "https://apis.data.go.kr/1613000/RTMSDataSvcRHTrade/getRTMSDataSvcRHTrade"
     params = {
         "LAWD_CD": "11200",
         "DEAL_YMD": deal_ymd,
