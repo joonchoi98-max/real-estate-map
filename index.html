@@ -274,23 +274,23 @@ function priceColor(manwon) {
 }
 
 function txDate(tx) {
-  const y = String(tx['년'] || tx.년 || '').trim();
-  const m = String(tx['월'] || tx.월 || '').trim().padStart(2, '0');
-  const d = String(tx['일'] || tx.일 || '').trim().padStart(2, '0');
+  const y = String(tx.dealYear || '').trim();
+  const m = String(tx.dealMonth || '').trim().padStart(2, '0');
+  const d = String(tx.dealDay || '').trim().padStart(2, '0');
   return y && m ? `${y}.${m}.${d}` : '–';
 }
 
 function txDateNum(tx) {
-  const y = parseInt(tx['년'] || tx.년 || 0);
-  const m = parseInt(tx['월'] || tx.월 || 0);
-  const d = parseInt(tx['일'] || tx.일 || 0);
+  const y = parseInt(tx.dealYear || 0);
+  const m = parseInt(tx.dealMonth || 0);
+  const d = parseInt(tx.dealDay || 0);
   return y * 10000 + m * 100 + d;
 }
 
 function txMonthsAgo(tx) {
   const now = new Date();
-  const y = parseInt(tx['년'] || tx.년 || 0);
-  const m = parseInt(tx['월'] || tx.월 || 0);
+  const y = parseInt(tx.dealYear || 0);
+  const m = parseInt(tx.dealMonth || 0);
   return (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
 }
 
@@ -357,7 +357,7 @@ async function loadData() {
 
   // collect dongs
   allData.forEach(tx => {
-    const d = (tx['법정동'] || tx.법정동 || '').trim();
+    const d = (tx.umdNm || '').trim();
     if (d) DONGS.add(d);
   });
 
@@ -399,7 +399,7 @@ function applyFilters() {
   const months = parseInt(document.getElementById('month-sel').value);
   filtered = allData.filter(tx => {
     if (activeDong !== '전체') {
-      const d = (tx['법정동'] || tx.법정동 || '').trim();
+      const d = (tx.umdNm || '').trim();
       if (d !== activeDong) return false;
     }
     if (months > 0 && txMonthsAgo(tx) > months) return false;
@@ -408,16 +408,16 @@ function applyFilters() {
 
   const sort = document.getElementById('sort-sel').value;
   if (sort === 'date')       filtered.sort((a, b) => txDateNum(b) - txDateNum(a));
-  else if (sort === 'price-desc') filtered.sort((a, b) => parsePrice(b['거래금액'] || b.거래금액) - parsePrice(a['거래금액'] || a.거래금액));
-  else if (sort === 'price-asc')  filtered.sort((a, b) => parsePrice(a['거래금액'] || a.거래금액) - parsePrice(b['거래금액'] || b.거래금액));
-  else if (sort === 'area')  filtered.sort((a, b) => parseFloat(b['전용면적'] || b.전용면적 || 0) - parseFloat(a['전용면적'] || a.전용면적 || 0));
+  else if (sort === 'price-desc') filtered.sort((a, b) => parsePrice(b.dealAmount) - parsePrice(a.dealAmount));
+  else if (sort === 'price-asc')  filtered.sort((a, b) => parsePrice(a.dealAmount) - parsePrice(b.dealAmount));
+  else if (sort === 'area')  filtered.sort((a, b) => parseFloat(b.excluUseAr || 0) - parseFloat(a.excluUseAr || 0));
 
   updateStats();
 }
 
 function updateStats() {
-  const prices = filtered.map(tx => parsePrice(tx['거래금액'] || tx.거래금액)).filter(Boolean);
-  const areas  = filtered.map(tx => parseFloat(tx['전용면적'] || tx.전용면적 || 0)).filter(Boolean);
+  const prices = filtered.map(tx => parsePrice(tx.dealAmount)).filter(Boolean);
+  const areas  = filtered.map(tx => parseFloat(tx.excluUseAr || 0)).filter(Boolean);
 
   document.getElementById('s-count').textContent = filtered.length.toLocaleString() + '건';
   document.getElementById('s-avg').textContent   = prices.length ? formatPrice(Math.round(prices.reduce((a,b)=>a+b,0)/prices.length)) : '–';
@@ -439,14 +439,14 @@ function renderList() {
 
   const frag = document.createDocumentFragment();
   filtered.forEach((tx, idx) => {
-    const price = parsePrice(tx['거래금액'] || tx.거래금액);
+    const price = parsePrice(tx.dealAmount);
     const color = priceColor(price);
-    const name  = (tx['연립다세대'] || tx.연립다세대 || '').trim() || '(이름 없음)';
-    const dong  = (tx['법정동'] || tx.법정동 || '').trim();
-    const jibun = (tx['지번'] || tx.지번 || '').trim();
-    const area  = parseFloat(tx['전용면적'] || tx.전용면적 || 0);
-    const floor = tx['층'] || tx.층 || '–';
-    const built = tx['건축년도'] || tx.건축년도 || '–';
+    const name  = (tx.mhouseNm || '').trim() || '(이름 없음)';
+    const dong  = (tx.umdNm || '').trim();
+    const jibun = (tx.jibun || '').trim();
+    const area  = parseFloat(tx.excluUseAr || 0);
+    const floor = tx.floor || '–';
+    const built = tx.buildYear || '–';
 
     const div = document.createElement('div');
     div.className = 'tx-item';
@@ -488,8 +488,8 @@ function selectItem(idx, panMap) {
 
 // ── GEOCODE ───────────────────────────────────────────────────────────
 function addrOf(tx) {
-  const dong  = (tx['법정동'] || tx.법정동 || '').trim();
-  const jibun = (tx['지번'] || tx.지번 || '').trim();
+  const dong  = (tx.umdNm || '').trim();
+  const jibun = (tx.jibun || '').trim();
   return `${dong} ${jibun}`;
 }
 
@@ -548,7 +548,7 @@ function buildMarkers() {
     const coords = geocodeCache[addr];
     if (!coords) return;
 
-    const maxPrice = Math.max(...txns.map(tx => parsePrice(tx['거래금액'] || tx.거래금액)));
+    const maxPrice = Math.max(...txns.map(tx => parsePrice(tx.dealAmount)));
     const color = priceColor(maxPrice);
     const marker = new kakao.maps.Marker({
       position: new kakao.maps.LatLng(coords.lat, coords.lng),
@@ -588,9 +588,9 @@ function openInfoWindowForGroup(txns, coords) {
   // show up to 3 most recent transactions
   const sorted = [...txns].sort((a,b) => txDateNum(b)-txDateNum(a)).slice(0,3);
   const rows = sorted.map(tx => {
-    const price = parsePrice(tx['거래금액'] || tx.거래금액);
-    const area  = parseFloat(tx['전용면적'] || tx.전용면적 || 0);
-    const floor = tx['층'] || tx.층 || '–';
+    const price = parsePrice(tx.dealAmount);
+    const area  = parseFloat(tx.excluUseAr || 0);
+    const floor = tx.floor || '–';
     const color = priceColor(price);
     return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #334155">
       <div style="color:${color};font-weight:700;font-size:15px">${formatPrice(price)}</div>
@@ -598,8 +598,8 @@ function openInfoWindowForGroup(txns, coords) {
     </div>`;
   }).join('');
 
-  const name = (txns[0]['연립다세대'] || txns[0].연립다세대 || '').trim() || '(이름 없음)';
-  const dong = (txns[0]['법정동'] || txns[0].법정동 || '').trim();
+  const name = (txns[0].mhouseNm || '').trim() || '(이름 없음)';
+  const dong = (txns[0].umdNm || '').trim();
   const total = txns.length > 3 ? `<div style="color:var(--accent);font-size:11px;margin-top:6px">외 ${txns.length-3}건 더보기 →</div>` : '';
 
   const content = `<div class="info-box">
