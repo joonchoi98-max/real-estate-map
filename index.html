@@ -182,7 +182,7 @@ function showError(msg) { const b=document.getElementById('error-bar'); b.textCo
 
 // ── 상태 ─────────────────────────────────────────────────────────────
 let allData=[], filtered=[], markers=[], clusterer=null;
-let geocodeCache={}, openIW=null, selectedItem=null, activeDong='전체';
+let geocodeCache={}, openIW=null, selectedItem=null, activeDongs=new Set();
 let map=null, geocoder=null;
 
 // ── 카카오맵 로드 후 시작 ─────────────────────────────────────────────
@@ -242,7 +242,7 @@ async function loadData() {
   hideOverlay();
 }
 
-// ── 동 필터 ───────────────────────────────────────────────────────────
+// ── 동 필터 (다중 선택) ───────────────────────────────────────────────
 function buildDongFilter(dongs) {
   const wrap=document.getElementById('dong-filter');
   const mkBtn=(label,val)=>{
@@ -255,8 +255,24 @@ function buildDongFilter(dongs) {
   dongs.forEach(d=>mkBtn(d,d));
   wrap.addEventListener('click', e=>{
     const btn=e.target.closest('.dong-btn'); if(!btn) return;
-    wrap.querySelectorAll('.dong-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active'); activeDong=btn.dataset.dong;
+    const val=btn.dataset.dong;
+    if (val==='전체') {
+      // 전체 선택 시 나머지 모두 해제
+      activeDongs.clear();
+      wrap.querySelectorAll('.dong-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    } else {
+      // 개별 동 토글
+      wrap.querySelector('.dong-btn[data-dong="전체"]').classList.remove('active');
+      if (activeDongs.has(val)) {
+        activeDongs.delete(val);
+        btn.classList.remove('active');
+        if (activeDongs.size===0) wrap.querySelector('.dong-btn[data-dong="전체"]').classList.add('active');
+      } else {
+        activeDongs.add(val);
+        btn.classList.add('active');
+      }
+    }
     applyFilters(); renderList(); updateVis();
   });
 }
@@ -266,7 +282,7 @@ function applyFilters() {
   const months=parseInt(document.getElementById('month-sel').value);
   const sort=document.getElementById('sort-sel').value;
   filtered=allData.filter(tx=>{
-    if (activeDong!=='전체'&&(tx.umdNm||'').trim()!==activeDong) return false;
+    if (activeDongs.size>0&&!activeDongs.has((tx.umdNm||'').trim())) return false;
     if (months>0&&txMonthsAgo(tx)>months) return false;
     return true;
   });
