@@ -172,7 +172,7 @@ function txMonthsAgo(tx) {
   const n=new Date();
   return (n.getFullYear()-(tx.dealYear||0))*12+(n.getMonth()+1-(tx.dealMonth||0));
 }
-function addrOf(tx) { return `${(tx.umdNm||'').trim()} ${(tx.jibun||'').trim()}`; }
+function addrOf(tx) { return `${String(tx.umdNm||'').trim()} ${String(tx.jibun||'').trim()}`; }
 function setMsg(t) { document.getElementById('overlay-msg').textContent=t; }
 function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
 function showError(msg) { const b=document.getElementById('error-bar'); b.textContent=msg; b.style.display='block'; }
