@@ -40,7 +40,7 @@ def main():
     results = []
 
     with requests.Session() as session:
-        for offset in range(6):  # last 6 months
+        for offset in range(36):  # last 36 months (3 years)
             year = now.year
             month = now.month - offset
             while month <= 0:
