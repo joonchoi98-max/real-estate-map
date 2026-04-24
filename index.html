@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>성동구 연립다세대 실거래가</title><link href="data:," rel="icon"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>성동구 연립다세대 실거래가</title>
+  <link rel="icon" href="data:," />
 
-
-<style>
+  <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg: #0f172a; --surface: #1e293b; --border: #334155; --muted: #475569;
@@ -99,51 +98,56 @@
   </style>
 </head>
 <body>
+
 <div id="overlay"><div class="spinner"></div><p id="overlay-msg">지도 로딩 중…</p></div>
 <div id="error-bar"></div>
+
 <header id="header">
-<h1>성동구 <span>연립다세대</span> 실거래가</h1>
-<div id="controls">
-<select id="sort-sel">
-<option value="date">최신순</option>
-<option value="price-desc">가격 높은순</option>
-<option value="price-asc">가격 낮은순</option>
-<option value="area">면적 넓은순</option>
-</select>
-<select id="month-sel">
-<option value="0">전체 기간</option>
-<option value="1">최근 1개월</option>
-<option value="3">최근 3개월</option>
-<option value="6">최근 6개월</option>
-</select>
-</div>
+  <h1>성동구 <span>연립다세대</span> 실거래가</h1>
+  <div id="controls">
+    <select id="sort-sel">
+      <option value="date">최신순</option>
+      <option value="price-desc">가격 높은순</option>
+      <option value="price-asc">가격 낮은순</option>
+      <option value="area">면적 넓은순</option>
+    </select>
+    <select id="month-sel">
+      <option value="0">전체 기간</option>
+      <option value="1">최근 1개월</option>
+      <option value="3">최근 3개월</option>
+      <option value="6">최근 6개월</option>
+    </select>
+  </div>
 </header>
+
 <div id="stats-bar">
-<div class="stat">거래 건수 <strong id="s-count">-</strong></div>
-<div class="stat">평균가 <strong id="s-avg">-</strong></div>
-<div class="stat">최고가 <strong id="s-max">-</strong></div>
-<div class="stat">최저가 <strong id="s-min">-</strong></div>
-<div class="stat">평균 전용 <strong id="s-area">-</strong></div>
+  <div class="stat">거래 건수 <strong id="s-count">-</strong></div>
+  <div class="stat">평균가 <strong id="s-avg">-</strong></div>
+  <div class="stat">최고가 <strong id="s-max">-</strong></div>
+  <div class="stat">최저가 <strong id="s-min">-</strong></div>
+  <div class="stat">평균 전용 <strong id="s-area">-</strong></div>
 </div>
+
 <div id="main">
-<div id="map-wrap">
-<div id="map"></div>
-<div id="legend">
-<div class="legend-row"><div class="dot" style="background:var(--red)"></div> 10억 초과</div>
-<div class="legend-row"><div class="dot" style="background:var(--orange)"></div> 6억~10억</div>
-<div class="legend-row"><div class="dot" style="background:var(--yellow)"></div> 3억~6억</div>
-<div class="legend-row"><div class="dot" style="background:var(--green)"></div> 3억 미만</div>
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div id="legend">
+      <div class="legend-row"><div class="dot" style="background:var(--red)"></div> 10억 초과</div>
+      <div class="legend-row"><div class="dot" style="background:var(--orange)"></div> 6억~10억</div>
+      <div class="legend-row"><div class="dot" style="background:var(--yellow)"></div> 3억~6억</div>
+      <div class="legend-row"><div class="dot" style="background:var(--green)"></div> 3억 미만</div>
+    </div>
+  </div>
+  <div id="panel">
+    <div id="panel-header">
+      <h2>거래 목록</h2>
+      <span id="count-badge">0</span>
+    </div>
+    <div id="dong-filter"></div>
+    <div id="list"><div id="empty">조건에 맞는 거래가 없습니다</div></div>
+  </div>
 </div>
-</div>
-<div id="panel">
-<div id="panel-header">
-<h2>거래 목록</h2>
-<span id="count-badge">0</span>
-</div>
-<div id="dong-filter"></div>
-<div id="list"><div id="empty">조건에 맞는 거래가 없습니다</div></div>
-</div>
-</div>
+
 <script>
 // ── 유틸 ─────────────────────────────────────────────────────────────
 function parsePrice(str) { return parseInt(String(str||'').replace(/,/g,''),10)||0; }
@@ -179,7 +183,7 @@ let geocodeCache={}, openIW=null, selectedItem=null, activeDong='전체';
 let map=null, geocoder=null;
 
 // ── 카카오맵 로드 후 시작 ─────────────────────────────────────────────
-function kakaoMapInit() {
+window.kakaoMapInit = function() {
   map = new kakao.maps.Map(document.getElementById('map'), {
     center: new kakao.maps.LatLng(37.5633, 127.0371), level: 5
   });
@@ -192,7 +196,7 @@ function kakaoMapInit() {
   });
   kakao.maps.event.addListener(map, 'click', ()=>{ if(openIW){openIW.close();openIW=null;} });
   loadData();
-}
+};
 
 // ── 마커 이미지 ───────────────────────────────────────────────────────
 function makeMarkerImage(color) {
@@ -371,6 +375,10 @@ function selItem(idx,pan) {
 
 document.getElementById('sort-sel').addEventListener('change',()=>{applyFilters();renderList();updateVis();});
 document.getElementById('month-sel').addEventListener('change',()=>{applyFilters();renderList();updateVis();});
-</script><script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=d43492daba36a536335061559d4dea27&amp;libraries=services,clusterer&amp;autoload=false"></script><script>kakao.maps.load(kakaoMapInit);</script>
+</script>
+
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d43492daba36a536335061559d4dea27&libraries=services,clusterer&autoload=false"
+        onload="kakao.maps.load(kakaoMapInit)"
+        onerror="hideOverlay(); showError('카카오 지도 SDK 로드 실패: 앱키, 도메인 등록, 네트워크 연결을 확인하세요.');"></script>
 </body>
 </html>
