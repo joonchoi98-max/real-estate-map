@@ -13,6 +13,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  administration: write   # required for enablement: true
 
 concurrency:
   group: pages
@@ -38,13 +39,22 @@ jobs:
           MOLIT_API_KEY: ${{ secrets.MOLIT_API_KEY }}
         run: python fetch_data.py
 
+      - name: Prepare site files
+        run: |
+          mkdir dist
+          cp index.html dist/
+          cp data.json dist/
+          touch dist/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "."
+          path: "dist"
 
   deploy:
     needs: build
