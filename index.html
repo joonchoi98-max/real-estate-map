@@ -215,6 +215,15 @@ async function loadData() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     allData = await res.json();
     if (!Array.isArray(allData)) throw new Error('형식 오류');
+    // normalize: 숫자로 내려오는 필드를 문자열로 통일
+    allData = allData.map(tx => ({
+      ...tx,
+      jibun:      String(tx.jibun      ?? ''),
+      umdNm:      String(tx.umdNm      ?? ''),
+      mhouseNm:   String(tx.mhouseNm   ?? ''),
+      dealAmount: String(tx.dealAmount  ?? ''),
+      floor:      String(tx.floor       ?? ''),
+    }));
   } catch(e) {
     hideOverlay();
     showError(`데이터 로드 실패: ${e.message}`);
