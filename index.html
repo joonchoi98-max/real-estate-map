@@ -345,7 +345,7 @@ function makeMarkerImage(color) {
 async function loadData() {
   overlay('거래 데이터 불러오는 중…');
   try {
-    const res = await fetch('https://joonchoi98-max.github.io/real-estate-map/data.json');
+    const res = await fetch('./data.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     allData = await res.json();
     if (!Array.isArray(allData)) throw new Error('Invalid data format');
