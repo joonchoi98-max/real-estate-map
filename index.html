@@ -375,10 +375,41 @@ function selItem(idx,pan) {
 
 document.getElementById('sort-sel').addEventListener('change',()=>{applyFilters();renderList();updateVis();});
 document.getElementById('month-sel').addEventListener('change',()=>{applyFilters();renderList();updateVis();});
-</script>
 
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d43492daba36a536335061559d4dea27&libraries=services,clusterer&autoload=false"
-        onload="kakao.maps.load(kakaoMapInit)"
-        onerror="hideOverlay(); showError('카카오 지도 SDK 로드 실패: 앱키, 도메인 등록, 네트워크 연결을 확인하세요.');"></script>
+// ── 카카오 SDK 안전 로드 ─────────────────────────────────────────────
+// 주의: 아래 값은 카카오 개발자센터의 JavaScript 키여야 합니다.
+// 현재 페이지 주소(예: http://localhost:5500 또는 실제 배포 도메인)를
+// 카카오 개발자센터 > 플랫폼 > Web 사이트 도메인에 등록해야 합니다.
+const KAKAO_APP_KEY = 'd43492daba36a536335061559d4dea27';
+
+function loadKakaoSdk() {
+  if (window.kakao && window.kakao.maps) {
+    kakao.maps.load(kakaoMapInit);
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services,clusterer&autoload=false`;
+  script.async = true;
+
+  script.onload = () => {
+    if (window.kakao && window.kakao.maps) {
+      kakao.maps.load(kakaoMapInit);
+    } else {
+      hideOverlay();
+      showError('카카오 지도 SDK는 불러왔지만 kakao 객체가 생성되지 않았습니다. JavaScript 키와 Web 도메인 등록을 확인하세요.');
+    }
+  };
+
+  script.onerror = () => {
+    hideOverlay();
+    showError('카카오 지도 SDK 로드 실패: 인터넷 연결, 광고차단/보안정책, 앱키, Web 도메인 등록을 확인하세요.');
+  };
+
+  document.head.appendChild(script);
+}
+
+loadKakaoSdk();
+</script>
 </body>
 </html>
