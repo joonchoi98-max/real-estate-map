@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>성동구 연립다세대 실거래가</title>
+  <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=d43492daba36a536335061559d4dea27&libraries=services,clusterer"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f172a;
+      --surface:   #1e293b;
+      --border:    #334155;
+      --muted:     #475569;
+      --text:      #e2e8f0;
+      --subtext:   #94a3b8;
+      --accent:    #38bdf8;
+      --green:     #22c55e;
+      --yellow:    #f59e0b;
+      --orange:    #f97316;
+      --red:       #ef4444;
+      --radius:    8px;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif; font-size: 14px; }
+
+    /* ── HEADER ───────────────────────────────────── */
+    #header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; height: 56px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      flex-shrink: 0; gap: 12px;
+    }
+    #header h1 { font-size: 16px; font-weight: 700; white-space: nowrap; color: var(--text); }
+    #header h1 span { color: var(--accent); }
+
+    #controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    select, button {
+      background: var(--bg); color: var(--text); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 5px 10px; font-size: 13px; cursor: pointer;
+    }
+    select:focus, button:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    button:hover { background: var(--border); }
+    button.active { background: var(--accent); color: #0f172a; border-color: var(--accent); font-weight: 600; }
+
+    #stats-bar {
+      display: flex; gap: 16px; align-items: center;
+      padding: 0 16px; height: 40px;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      flex-shrink: 0; overflow-x: auto;
+    }
+    .stat { display: flex; gap: 6px; align-items: center; white-space: nowrap; color: var(--subtext); font-size: 12px; }
+    .stat strong { color: var(--text); font-size: 13px; }
+
+    /* ── MAIN ─────────────────────────────────────── */
+    #main {
+      display: flex; flex: 1; overflow: hidden;
+    }
+
+    /* ── MAP ──────────────────────────────────────── */
+    #map-wrap { flex: 1; position: relative; min-width: 0; }
+    #map { width: 100%; height: 100%; }
+
+    #legend {
+      position: absolute; bottom: 16px; left: 16px; z-index: 10;
+      background: rgba(15,23,42,.85); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--subtext); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── PANEL ────────────────────────────────────── */
+    #panel {
+      width: 360px; flex-shrink: 0;
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    #panel-header {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    #panel-header h2 { font-size: 13px; font-weight: 600; color: var(--subtext); text-transform: uppercase; letter-spacing: .5px; }
+    #count-badge {
+      background: var(--accent); color: #0f172a; font-size: 11px; font-weight: 700;
+      border-radius: 20px; padding: 2px 8px;
+    }
+
+    #dong-filter {
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .dong-btn {
+      padding: 3px 10px; font-size: 12px; border-radius: 20px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--subtext);
+      cursor: pointer; white-space: nowrap;
+    }
+    .dong-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .dong-btn.active { background: var(--accent); border-color: var(--accent); color: #0f172a; font-weight: 600; }
+
+    #list { overflow-y: auto; flex: 1; }
+    #list::-webkit-scrollbar { width: 6px; }
+    #list::-webkit-scrollbar-track { background: var(--surface); }
+    #list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .tx-item {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .tx-item:hover { background: rgba(56,189,248,.06); }
+    .tx-item.selected { background: rgba(56,189,248,.12); border-left: 3px solid var(--accent); padding-left: 13px; }
+
+    .price-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .tx-body { flex: 1; min-width: 0; }
+    .tx-name { font-weight: 600; font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tx-meta { font-size: 12px; color: var(--subtext); margin-top: 2px; }
+    .tx-price { font-weight: 700; font-size: 15px; margin-top: 4px; }
+    .tx-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── LOADING OVERLAY ──────────────────────────── */
+    #overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+    }
+    #overlay.hidden { display: none; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #overlay p { color: var(--subtext); font-size: 14px; }
+    #overlay strong { color: var(--accent); }
+
+    /* ── INFOWINDOW override ──────────────────────── */
+    .info-box {
+      background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+      padding: 12px 14px; min-width: 200px; max-width: 260px; box-shadow: 0 8px 24px rgba(0,0,0,.6);
+    }
+    .info-box .ib-name { font-weight: 700; font-size: 14px; color: #e2e8f0; margin-bottom: 6px; }
+    .info-box .ib-price { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .info-box .ib-row { font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; margin-top: 3px; }
+    .info-box .ib-row span { color: #e2e8f0; }
+
+    /* ── EMPTY STATE ──────────────────────────────── */
+    #empty { padding: 48px 24px; text-align: center; color: var(--muted); display: none; }
+    #empty svg { width: 48px; height: 48px; opacity: .4; margin-bottom: 12px; }
+
+    /* ── ERROR BANNER ─────────────────────────────── */
+    #error-bar {
+      display: none; padding: 10px 16px;
+      background: rgba(239,68,68,.15); border-bottom: 1px solid rgba(239,68,68,.4);
+      color: #fca5a5; font-size: 13px;
+    }
+
+    /* ── MOBILE ───────────────────────────────────── */
+    @media (max-width: 768px) {
+      #header h1 { font-size: 14px; }
+      #main { flex-direction: column; }
+      #map-wrap { height: 55vw; min-height: 240px; flex: none; }
+      #panel { width: 100%; border-left: none; border-top: 1px solid var(--border); height: auto; flex: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="overlay">
+  <div class="spinner"></div>
+  <p id="overlay-msg">데이터 불러오는 중…</p>
+</div>
+
+<!-- Error bar -->
+<div id="error-bar" role="alert"></div>
+
+<!-- Header -->
+<header id="header">
+  <h1>성동구 <span>연립다세대</span> 실거래가</h1>
+  <div id="controls">
+    <select id="sort-sel" title="정렬 기준">
+      <option value="date">최신순</option>
+      <option value="price-desc">가격 높은순</option>
+      <option value="price-asc">가격 낮은순</option>
+      <option value="area">면적 넓은순</option>
+    </select>
+    <select id="month-sel" title="기간 선택">
+      <option value="0">전체 기간</option>
+      <option value="1">최근 1개월</option>
+      <option value="3">최근 3개월</option>
+      <option value="6">최근 6개월</option>
+    </select>
+  </div>
+</header>
+
+<!-- Stats bar -->
+<div id="stats-bar">
+  <div class="stat">거래 건수 <strong id="s-count">-</strong></div>
+  <div class="stat">평균가 <strong id="s-avg">-</strong></div>
+  <div class="stat">최고가 <strong id="s-max">-</strong></div>
+  <div class="stat">최저가 <strong id="s-min">-</strong></div>
+  <div class="stat">평균 전용 <strong id="s-area">-</strong></div>
+</div>
+
+<!-- Main: map + list -->
+<div id="main">
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div id="legend">
+      <div class="legend-row"><div class="dot" style="background:var(--red)"></div> 10억 초과</div>
+      <div class="legend-row"><div class="dot" style="background:var(--orange)"></div> 6억~10억</div>
+      <div class="legend-row"><div class="dot" style="background:var(--yellow)"></div> 3억~6억</div>
+      <div class="legend-row"><div class="dot" style="background:var(--green)"></div> 3억 미만</div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div id="panel-header">
+      <h2>거래 목록</h2>
+      <span id="count-badge">0</span>
+    </div>
+    <div id="dong-filter"></div>
+    <div id="list">
+      <div id="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p>조건에 맞는 거래가 없습니다</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────
+const SEONGDONG = { lat: 37.5633, lng: 127.0371 };
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let allData = [];
+let filtered = [];
+let markers = [];
+let clusterer = null;
+let geocodeCache = {};
+let openInfoWindow = null;
+let selectedItem = null;
+let activeDong = '전체';
+const DONGS = new Set();
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+function parsePrice(str) {
+  if (!str) return 0;
+  return parseInt(String(str).replace(/,/g, ''), 10) || 0;
+}
+
+function formatPrice(manwon) {
+  if (!manwon) return '–';
+  if (manwon >= 10000) {
+    const eok = Math.floor(manwon / 10000);
+    const man = manwon % 10000;
+    return man ? `${eok}억 ${man.toLocaleString()}만` : `${eok}억`;
+  }
+  return `${manwon.toLocaleString()}만원`;
+}
+
+function priceColor(manwon) {
+  if (manwon >= 100000) return 'var(--red)';
+  if (manwon >= 60000)  return 'var(--orange)';
+  if (manwon >= 30000)  return 'var(--yellow)';
+  return 'var(--green)';
+}
+
+function txDate(tx) {
+  const y = String(tx['년'] || tx.년 || '').trim();
+  const m = String(tx['월'] || tx.월 || '').trim().padStart(2, '0');
+  const d = String(tx['일'] || tx.일 || '').trim().padStart(2, '0');
+  return y && m ? `${y}.${m}.${d}` : '–';
+}
+
+function txDateNum(tx) {
+  const y = parseInt(tx['년'] || tx.년 || 0);
+  const m = parseInt(tx['월'] || tx.월 || 0);
+  const d = parseInt(tx['일'] || tx.일 || 0);
+  return y * 10000 + m * 100 + d;
+}
+
+function txMonthsAgo(tx) {
+  const now = new Date();
+  const y = parseInt(tx['년'] || tx.년 || 0);
+  const m = parseInt(tx['월'] || tx.월 || 0);
+  return (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
+}
+
+function overlay(msg) {
+  document.getElementById('overlay-msg').innerHTML = msg;
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+function showError(msg) {
+  const bar = document.getElementById('error-bar');
+  bar.textContent = msg;
+  bar.style.display = 'block';
+}
+
+// ── KAKAO MAP INIT ────────────────────────────────────────────────────
+const map = new kakao.maps.Map(document.getElementById('map'), {
+  center: new kakao.maps.LatLng(SEONGDONG.lat, SEONGDONG.lng),
+  level: 5,
+});
+const geocoder = new kakao.maps.services.Geocoder();
+
+clusterer = new kakao.maps.MarkerClusterer({
+  map,
+  averageCenter: true,
+  minLevel: 4,
+  disableClickZoom: false,
+  styles: [{
+    width: '42px', height: '42px',
+    background: 'rgba(56,189,248,.85)',
+    borderRadius: '50%',
+    color: '#0f172a', fontWeight: '700',
+    fontSize: '14px',
+    textAlign: 'center', lineHeight: '42px',
+    border: '2px solid rgba(255,255,255,.4)',
+  }],
+});
+
+function makeMarkerImage(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+    <circle cx="14" cy="14" r="11" fill="${color}" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+  </svg>`;
+  const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  return new kakao.maps.MarkerImage(url, new kakao.maps.Size(28, 28), {
+    offset: new kakao.maps.Point(14, 14)
+  });
+}
+
+// ── DATA LOAD ─────────────────────────────────────────────────────────
+async function loadData() {
+  overlay('거래 데이터 불러오는 중…');
+  try {
+    const res = await fetch('./data.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    allData = await res.json();
+    if (!Array.isArray(allData)) throw new Error('Invalid data format');
+  } catch (e) {
+    hideOverlay();
+    showError(`데이터 파일을 불러올 수 없습니다. GitHub Actions가 먼저 실행되어야 합니다. (${e.message})`);
+    return;
+  }
+
+  // collect dongs
+  allData.forEach(tx => {
+    const d = (tx['법정동'] || tx.법정동 || '').trim();
+    if (d) DONGS.add(d);
+  });
+
+  buildDongFilter();
+  applyFilters();
+  await geocodeAndRender();
+  hideOverlay();
+}
+
+// ── DONG FILTER ───────────────────────────────────────────────────────
+function buildDongFilter() {
+  const wrap = document.getElementById('dong-filter');
+  const all = document.createElement('button');
+  all.className = 'dong-btn active'; all.textContent = '전체';
+  all.dataset.dong = '전체';
+  wrap.appendChild(all);
+
+  [...DONGS].sort().forEach(dong => {
+    const btn = document.createElement('button');
+    btn.className = 'dong-btn'; btn.textContent = dong;
+    btn.dataset.dong = dong;
+    wrap.appendChild(btn);
+  });
+
+  wrap.addEventListener('click', e => {
+    const btn = e.target.closest('.dong-btn');
+    if (!btn) return;
+    wrap.querySelectorAll('.dong-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeDong = btn.dataset.dong;
+    applyFilters();
+    renderList();
+    updateMarkerVisibility();
+  });
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────
+function applyFilters() {
+  const months = parseInt(document.getElementById('month-sel').value);
+  filtered = allData.filter(tx => {
+    if (activeDong !== '전체') {
+      const d = (tx['법정동'] || tx.법정동 || '').trim();
+      if (d !== activeDong) return false;
+    }
+    if (months > 0 && txMonthsAgo(tx) > months) return false;
+    return true;
+  });
+
+  const sort = document.getElementById('sort-sel').value;
+  if (sort === 'date')       filtered.sort((a, b) => txDateNum(b) - txDateNum(a));
+  else if (sort === 'price-desc') filtered.sort((a, b) => parsePrice(b['거래금액'] || b.거래금액) - parsePrice(a['거래금액'] || a.거래금액));
+  else if (sort === 'price-asc')  filtered.sort((a, b) => parsePrice(a['거래금액'] || a.거래금액) - parsePrice(b['거래금액'] || b.거래금액));
+  else if (sort === 'area')  filtered.sort((a, b) => parseFloat(b['전용면적'] || b.전용면적 || 0) - parseFloat(a['전용면적'] || a.전용면적 || 0));
+
+  updateStats();
+}
+
+function updateStats() {
+  const prices = filtered.map(tx => parsePrice(tx['거래금액'] || tx.거래금액)).filter(Boolean);
+  const areas  = filtered.map(tx => parseFloat(tx['전용면적'] || tx.전용면적 || 0)).filter(Boolean);
+
+  document.getElementById('s-count').textContent = filtered.length.toLocaleString() + '건';
+  document.getElementById('s-avg').textContent   = prices.length ? formatPrice(Math.round(prices.reduce((a,b)=>a+b,0)/prices.length)) : '–';
+  document.getElementById('s-max').textContent   = prices.length ? formatPrice(Math.max(...prices)) : '–';
+  document.getElementById('s-min').textContent   = prices.length ? formatPrice(Math.min(...prices)) : '–';
+  document.getElementById('s-area').textContent  = areas.length  ? (areas.reduce((a,b)=>a+b,0)/areas.length).toFixed(1)+'㎡' : '–';
+  document.getElementById('count-badge').textContent = filtered.length.toLocaleString();
+}
+
+// ── LIST RENDER ───────────────────────────────────────────────────────
+function renderList() {
+  const list = document.getElementById('list');
+  const empty = document.getElementById('empty');
+  // remove old items
+  list.querySelectorAll('.tx-item').forEach(el => el.remove());
+
+  if (!filtered.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  const frag = document.createDocumentFragment();
+  filtered.forEach((tx, idx) => {
+    const price = parsePrice(tx['거래금액'] || tx.거래금액);
+    const color = priceColor(price);
+    const name  = (tx['연립다세대'] || tx.연립다세대 || '').trim() || '(이름 없음)';
+    const dong  = (tx['법정동'] || tx.법정동 || '').trim();
+    const jibun = (tx['지번'] || tx.지번 || '').trim();
+    const area  = parseFloat(tx['전용면적'] || tx.전용면적 || 0);
+    const floor = tx['층'] || tx.층 || '–';
+    const built = tx['건축년도'] || tx.건축년도 || '–';
+
+    const div = document.createElement('div');
+    div.className = 'tx-item';
+    div.dataset.idx = idx;
+    div.innerHTML = `
+      <div class="price-dot" style="background:${color}"></div>
+      <div class="tx-body">
+        <div class="tx-name">${name}</div>
+        <div class="tx-meta">${dong} ${jibun}</div>
+        <div class="tx-price" style="color:${color}">${formatPrice(price)}</div>
+        <div class="tx-detail">${area}㎡ · ${floor}층 · ${built}년 · ${txDate(tx)}</div>
+      </div>`;
+    div.addEventListener('click', () => selectItem(idx, true));
+    frag.appendChild(div);
+  });
+  list.appendChild(frag);
+}
+
+function selectItem(idx, panMap) {
+  // deselect old
+  if (selectedItem !== null) {
+    const old = document.querySelector(`.tx-item[data-idx="${selectedItem}"]`);
+    if (old) old.classList.remove('selected');
+  }
+  selectedItem = idx;
+  const el = document.querySelector(`.tx-item[data-idx="${idx}"]`);
+  if (el) { el.classList.add('selected'); el.scrollIntoView({ block: 'nearest' }); }
+
+  if (panMap) {
+    const tx = filtered[idx];
+    const addrKey = addrOf(tx);
+    const coords  = geocodeCache[addrKey];
+    if (coords) {
+      map.panTo(new kakao.maps.LatLng(coords.lat, coords.lng));
+      openInfoWindowForTx(tx, coords);
+    }
+  }
+}
+
+// ── GEOCODE ───────────────────────────────────────────────────────────
+function addrOf(tx) {
+  const dong  = (tx['법정동'] || tx.법정동 || '').trim();
+  const jibun = (tx['지번'] || tx.지번 || '').trim();
+  return `${dong} ${jibun}`;
+}
+
+function geocodeAddr(addr) {
+  return new Promise(resolve => {
+    if (geocodeCache[addr] !== undefined) { resolve(geocodeCache[addr]); return; }
+    geocoder.addressSearch(`서울특별시 성동구 ${addr}`, (result, status) => {
+      if (status === kakao.maps.services.Status.OK) {
+        const c = { lat: parseFloat(result[0].y), lng: parseFloat(result[0].x) };
+        geocodeCache[addr] = c;
+        resolve(c);
+      } else {
+        geocodeCache[addr] = null;
+        resolve(null);
+      }
+    });
+  });
+}
+
+async function geocodeAndRender() {
+  // collect unique addresses
+  const uniqueAddrs = [...new Set(allData.map(addrOf))];
+  const total = uniqueAddrs.length;
+  let done = 0;
+
+  // batch geocoding with small delay to avoid rate limits
+  const BATCH = 10;
+  for (let i = 0; i < uniqueAddrs.length; i += BATCH) {
+    const batch = uniqueAddrs.slice(i, i + BATCH);
+    await Promise.all(batch.map(a => geocodeAddr(a)));
+    done += batch.length;
+    overlay(`주소 변환 중… ${Math.min(done,total)} / ${total}`);
+    if (i + BATCH < uniqueAddrs.length) await new Promise(r => setTimeout(r, 80));
+  }
+
+  buildMarkers();
+  renderList();
+}
+
+// ── MARKERS ───────────────────────────────────────────────────────────
+// Group by address: keep highest price for marker color, store all txns
+function buildMarkers() {
+  clusterer.clear();
+  markers = [];
+
+  // group filtered by address
+  const groups = {};
+  allData.forEach(tx => {
+    const key = addrOf(tx);
+    if (!geocodeCache[key]) return;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(tx);
+  });
+
+  Object.entries(groups).forEach(([addr, txns]) => {
+    const coords = geocodeCache[addr];
+    if (!coords) return;
+
+    const maxPrice = Math.max(...txns.map(tx => parsePrice(tx['거래금액'] || tx.거래금액)));
+    const color = priceColor(maxPrice);
+    const marker = new kakao.maps.Marker({
+      position: new kakao.maps.LatLng(coords.lat, coords.lng),
+      image: makeMarkerImage(color),
+    });
+    marker._txns = txns;
+    marker._addr = addr;
+    marker._coords = coords;
+
+    kakao.maps.event.addListener(marker, 'click', () => {
+      openInfoWindowForGroup(txns, coords);
+      // also highlight first match in filtered list
+      const idx = filtered.findIndex(tx => addrOf(tx) === addr);
+      if (idx >= 0) selectItem(idx, false);
+    });
+
+    markers.push({ marker, addr });
+  });
+
+  // show only markers for currently filtered addresses
+  updateMarkerVisibility();
+}
+
+function updateMarkerVisibility() {
+  const visibleAddrs = new Set(filtered.map(addrOf));
+  const visibleMarkers = markers
+    .filter(({ addr }) => visibleAddrs.has(addr))
+    .map(({ marker }) => marker);
+  clusterer.clear();
+  clusterer.addMarkers(visibleMarkers);
+}
+
+// ── INFO WINDOW ───────────────────────────────────────────────────────
+function openInfoWindowForGroup(txns, coords) {
+  if (openInfoWindow) openInfoWindow.close();
+
+  // show up to 3 most recent transactions
+  const sorted = [...txns].sort((a,b) => txDateNum(b)-txDateNum(a)).slice(0,3);
+  const rows = sorted.map(tx => {
+    const price = parsePrice(tx['거래금액'] || tx.거래금액);
+    const area  = parseFloat(tx['전용면적'] || tx.전용면적 || 0);
+    const floor = tx['층'] || tx.층 || '–';
+    const color = priceColor(price);
+    return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #334155">
+      <div style="color:${color};font-weight:700;font-size:15px">${formatPrice(price)}</div>
+      <div style="color:#94a3b8;font-size:11px;margin-top:2px">${area}㎡ · ${floor}층 · ${txDate(tx)}</div>
+    </div>`;
+  }).join('');
+
+  const name = (txns[0]['연립다세대'] || txns[0].연립다세대 || '').trim() || '(이름 없음)';
+  const dong = (txns[0]['법정동'] || txns[0].법정동 || '').trim();
+  const total = txns.length > 3 ? `<div style="color:var(--accent);font-size:11px;margin-top:6px">외 ${txns.length-3}건 더보기 →</div>` : '';
+
+  const content = `<div class="info-box">
+    <div class="ib-name">${name}</div>
+    <div style="color:#94a3b8;font-size:12px;margin-bottom:4px">성동구 ${dong}</div>
+    ${rows}
+    ${total}
+  </div>`;
+
+  openInfoWindow = new kakao.maps.InfoWindow({
+    content,
+    removable: true,
+    zIndex: 1,
+  });
+  openInfoWindow.open(map, new kakao.maps.Marker({ position: new kakao.maps.LatLng(coords.lat, coords.lng) }));
+}
+
+function openInfoWindowForTx(tx, coords) {
+  openInfoWindowForGroup([tx], coords);
+}
+
+// close info window on map click
+kakao.maps.event.addListener(map, 'click', () => {
+  if (openInfoWindow) { openInfoWindow.close(); openInfoWindow = null; }
+});
+
+// ── CONTROLS ──────────────────────────────────────────────────────────
+document.getElementById('sort-sel').addEventListener('change', () => {
+  applyFilters(); renderList(); updateMarkerVisibility();
+});
+document.getElementById('month-sel').addEventListener('change', () => {
+  applyFilters(); renderList(); updateMarkerVisibility();
+});
+
+// ── BOOTSTRAP ─────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
