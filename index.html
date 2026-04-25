@@ -53,7 +53,7 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     #panel-header h2 { font-size: 13px; font-weight: 600; color: var(--subtext); text-transform: uppercase; letter-spacing: .5px; }
-    #count-badge { background: var(--accent); color: #0f172a; font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 8px; }
+    #count-badge, #count-badge-pc { background: var(--accent); color: #0f172a; font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 8px; }
     #dong-filter { padding: 8px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
     .dong-btn {
       padding: 3px 10px; font-size: 12px; border-radius: 20px;
@@ -92,8 +92,28 @@
     #error-bar { display: none; padding: 10px 16px; background: rgba(239,68,68,.15); border-bottom: 1px solid rgba(239,68,68,.4); color: #fca5a5; font-size: 13px; }
     @media (max-width: 768px) {
       #main { flex-direction: column; }
-      #map-wrap { height: 55vw; min-height: 240px; flex: none; }
-      #panel { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1; }
+      #map-wrap { flex: 1; min-height: 0; }
+      #panel {
+        width: 100%; border-left: none; border-top: 1px solid var(--border);
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: 72px; /* 핸들만 보이는 높이 */
+        transition: height .35s cubic-bezier(.4,0,.2,1);
+        z-index: 100; overflow: hidden;
+      }
+      #panel.drawer-open { height: 70vh; }
+      #drawer-handle {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 16px; height: 48px; cursor: pointer; flex-shrink: 0;
+        border-bottom: 1px solid var(--border);
+      }
+      #drawer-handle-left { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+      #drawer-arrow { font-size: 18px; transition: transform .3s; }
+      #panel.drawer-open #drawer-arrow { transform: rotate(180deg); }
+      #float-btn { display: none; } /* 핸들 방식으로 대체 */
+    }
+    @media (min-width: 769px) {
+      #drawer-handle { display: none; }
+      #panel { width: 360px; flex-shrink: 0; border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
     }
   </style>
 </head>
@@ -142,9 +162,18 @@
     </div>
   </div>
   <div id="panel">
+    <!-- 모바일 드로어 핸들 -->
+    <div id="drawer-handle" onclick="toggleDrawer()">
+      <div id="drawer-handle-left">
+        <span>☰ 거래 목록</span>
+        <span id="count-badge">0</span>
+      </div>
+      <span id="drawer-arrow">︿</span>
+    </div>
+    <!-- PC 헤더 -->
     <div id="panel-header">
       <h2>거래 목록</h2>
-      <span id="count-badge">0</span>
+      <span id="count-badge-pc">0</span>
     </div>
     <div id="dong-filter"></div>
     <div id="list"><div id="empty">조건에 맞는 거래가 없습니다</div></div>
@@ -297,7 +326,9 @@ function applyFilters() {
   document.getElementById('s-max').textContent=prices.length?formatPrice(Math.max(...prices)):'–';
   document.getElementById('s-min').textContent=prices.length?formatPrice(Math.min(...prices)):'–';
   document.getElementById('s-area').textContent=areas.length?(areas.reduce((a,b)=>a+b)/areas.length).toFixed(1)+'㎡':'–';
-  document.getElementById('count-badge').textContent=filtered.length.toLocaleString();
+  const cnt=filtered.length.toLocaleString();
+  document.getElementById('count-badge').textContent=cnt;
+  document.getElementById('count-badge-pc').textContent=cnt;
 }
 
 // ── 지오코딩 ─────────────────────────────────────────────────────────
@@ -403,6 +434,17 @@ function selItem(idx,pan) {
 
 document.getElementById('sort-sel').addEventListener('change',()=>{applyFilters();renderList();updateVis();});
 document.getElementById('month-sel').addEventListener('change',()=>{applyFilters();renderList();updateVis();});
+
+function toggleDrawer() {
+  const panel=document.getElementById('panel');
+  panel.classList.toggle('drawer-open');
+  if (panel.classList.contains('drawer-open')) map.relayout();
+}
+
+// 지도 터치/클릭 시 드로어 닫기 (모바일)
+document.getElementById('map').addEventListener('click',()=>{
+  document.getElementById('panel').classList.remove('drawer-open');
+});
 
 // ── 카카오 SDK 안전 로드 ─────────────────────────────────────────────
 // 주의: 아래 값은 카카오 개발자센터의 JavaScript 키여야 합니다.
