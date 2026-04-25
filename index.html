@@ -92,28 +92,39 @@
     #error-bar { display: none; padding: 10px 16px; background: rgba(239,68,68,.15); border-bottom: 1px solid rgba(239,68,68,.4); color: #fca5a5; font-size: 13px; }
     @media (max-width: 768px) {
       #main { flex-direction: column; }
-      #map-wrap { flex: 1; min-height: 0; }
+      #map-wrap { flex: 1; min-height: 0; padding-bottom: 48px; }
       #panel {
-        width: 100%; border-left: none; border-top: 1px solid var(--border);
+        width: 100%; border-left: none;
         position: fixed; bottom: 0; left: 0; right: 0;
-        height: 72px; /* 핸들만 보이는 높이 */
+        height: 48px;
+        display: flex; flex-direction: column;
         transition: height .35s cubic-bezier(.4,0,.2,1);
         z-index: 100; overflow: hidden;
       }
       #panel.drawer-open { height: 70vh; }
+      #panel-header { display: none; }
+      #panel-body {
+        flex: 1; display: flex; flex-direction: column;
+        min-height: 0; overflow: hidden;
+      }
       #drawer-handle {
+        flex-shrink: 0;
         display: flex; align-items: center; justify-content: space-between;
-        padding: 0 16px; height: 48px; cursor: pointer; flex-shrink: 0;
-        border-bottom: 1px solid var(--border);
+        padding: 0 16px; height: 48px; cursor: pointer;
+        border-top: 1px solid var(--border); background: var(--surface);
       }
       #drawer-handle-left { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
       #drawer-arrow { font-size: 18px; transition: transform .3s; }
       #panel.drawer-open #drawer-arrow { transform: rotate(180deg); }
-      #float-btn { display: none; } /* 핸들 방식으로 대체 */
+      /* 헤더 필터 박스 */
+      #header { height: auto; min-height: 52px; padding: 6px 12px; flex-wrap: nowrap; }
+      #header h1 { font-size: 13px; }
+      #controls { flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
+      #controls select { width: 108px; font-size: 12px; padding: 4px 6px; border-radius: 6px; }
     }
     @media (min-width: 769px) {
       #drawer-handle { display: none; }
-      #panel { width: 360px; flex-shrink: 0; border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+      #panel-body { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
     }
   </style>
 </head>
@@ -162,7 +173,17 @@
     </div>
   </div>
   <div id="panel">
-    <!-- 모바일 드로어 핸들 -->
+    <!-- PC 헤더 (모바일에서 숨김) -->
+    <div id="panel-header">
+      <h2>거래 목록</h2>
+      <span id="count-badge-pc">0</span>
+    </div>
+    <!-- 스크롤 콘텐츠 영역 -->
+    <div id="panel-body">
+      <div id="dong-filter"></div>
+      <div id="list"><div id="empty">조건에 맞는 거래가 없습니다</div></div>
+    </div>
+    <!-- 모바일 핸들 (항상 하단 고정) -->
     <div id="drawer-handle" onclick="toggleDrawer()">
       <div id="drawer-handle-left">
         <span>☰ 거래 목록</span>
@@ -170,13 +191,6 @@
       </div>
       <span id="drawer-arrow">︿</span>
     </div>
-    <!-- PC 헤더 -->
-    <div id="panel-header">
-      <h2>거래 목록</h2>
-      <span id="count-badge-pc">0</span>
-    </div>
-    <div id="dong-filter"></div>
-    <div id="list"><div id="empty">조건에 맞는 거래가 없습니다</div></div>
   </div>
 </div>
 
@@ -438,7 +452,7 @@ document.getElementById('month-sel').addEventListener('change',()=>{applyFilters
 function toggleDrawer() {
   const panel=document.getElementById('panel');
   panel.classList.toggle('drawer-open');
-  if (panel.classList.contains('drawer-open')) map.relayout();
+  if (map) setTimeout(()=>map.relayout(), 360);
 }
 
 // 지도 터치/클릭 시 드로어 닫기 (모바일)
