@@ -160,6 +160,8 @@
   <div class="stat">최고가 <strong id="s-max">-</strong></div>
   <div class="stat">최저가 <strong id="s-min">-</strong></div>
   <div class="stat">평균 전용 <strong id="s-area">-</strong></div>
+  <div class="stat" style="margin-left:auto;border-left:1px solid var(--border);padding-left:16px;">최신 거래 <strong id="s-latest">-</strong></div>
+  <div class="stat">수집일 <strong id="s-fetched">-</strong></div>
 </div>
 
 <div id="main">
@@ -257,12 +259,15 @@ function makeMarkerImage(color) {
 async function loadData() {
   setMsg('거래 데이터 불러오는 중…');
   try {
-    const res = await fetch('./data.json');
+    const res = await fetch('https://joonchoi98-max.github.io/real-estate-map/data.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    allData = await res.json();
-    if (!Array.isArray(allData)) throw new Error('형식 오류');
+    const json = await res.json();
+    // 새 포맷 { fetched, items } 또는 구 포맷 배열 모두 지원
+    const fetchedAt = json.fetched || null;
+    const raw = Array.isArray(json) ? json : (json.items || []);
+    if (!Array.isArray(raw)) throw new Error('형식 오류');
     // normalize: 숫자로 내려오는 필드를 문자열로 통일
-    allData = allData.map(tx => ({
+    allData = raw.map(tx => ({
       ...tx,
       jibun:      String(tx.jibun      ?? ''),
       umdNm:      String(tx.umdNm      ?? ''),
@@ -270,6 +275,7 @@ async function loadData() {
       dealAmount: String(tx.dealAmount  ?? ''),
       floor:      String(tx.floor       ?? ''),
     }));
+    if (fetchedAt) document.getElementById('s-fetched').textContent = fetchedAt;
   } catch(e) {
     hideOverlay();
     showError(`데이터 로드 실패: ${e.message}`);
@@ -340,6 +346,12 @@ function applyFilters() {
   document.getElementById('s-max').textContent=prices.length?formatPrice(Math.max(...prices)):'–';
   document.getElementById('s-min').textContent=prices.length?formatPrice(Math.min(...prices)):'–';
   document.getElementById('s-area').textContent=areas.length?(areas.reduce((a,b)=>a+b)/areas.length).toFixed(1)+'㎡':'–';
+  // 최신 거래월: allData 전체 기준 (필터 무관)
+  const latestNum=allData.reduce((m,tx)=>Math.max(m,txDateNum(tx)),0);
+  if (latestNum>0) {
+    const ly=Math.floor(latestNum/10000), lm=Math.floor((latestNum%10000)/100);
+    document.getElementById('s-latest').textContent=`${ly}년 ${lm}월`;
+  }
   const cnt=filtered.length.toLocaleString();
   document.getElementById('count-badge').textContent=cnt;
   document.getElementById('count-badge-pc').textContent=cnt;

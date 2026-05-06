@@ -55,8 +55,12 @@ def main():
                 print(f"  {deal_ymd}: FAILED — {exc}", file=sys.stderr)
 
     out_path = os.path.join(os.path.dirname(__file__), "data.json")
+    output = {
+        "fetched": now.strftime("%Y-%m-%d %H:%M"),
+        "items": results,
+    }
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False)
+        json.dump(output, f, ensure_ascii=False)
     print(f"\nSaved {len(results)} total records → {out_path}")
 
 
