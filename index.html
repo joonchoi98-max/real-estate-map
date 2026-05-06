@@ -257,7 +257,6 @@ async function loadData() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     // 새 포맷 { fetched, items } 또는 구 포맷 배열 모두 지원
-    const fetchedAt = json.fetched || null;
     const raw = Array.isArray(json) ? json : (json.items || []);
     if (!Array.isArray(raw)) throw new Error('형식 오류');
     // normalize: 숫자로 내려오는 필드를 문자열로 통일
@@ -269,7 +268,13 @@ async function loadData() {
       dealAmount: String(tx.dealAmount  ?? ''),
       floor:      String(tx.floor       ?? ''),
     }));
-    if (fetchedAt) document.getElementById('s-fetched').textContent = fetchedAt;
+    // 데이터 내 가장 최신 거래월 = 국토부 API 업데이트 기준
+    const latestNum = allData.reduce((m, tx) => Math.max(m, txDateNum(tx)), 0);
+    if (latestNum > 0) {
+      const ly = Math.floor(latestNum / 10000);
+      const lm = Math.floor((latestNum % 10000) / 100);
+      document.getElementById('s-fetched').textContent = `${ly}년 ${lm}월까지 수록`;
+    }
   } catch(e) {
     hideOverlay();
     showError(`데이터 로드 실패: ${e.message}`);
